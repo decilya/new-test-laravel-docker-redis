@@ -32,4 +32,31 @@ $ make install
 $ docker compose exec app php artisan migrage
 ```
 
+Какие смотреть файлы:
+
+код:
+- https://github.com/decilya/new-test-laravel-docker-redis/blob/main/src/database/migrations/0001_01_01_000000_create_users_table.php
+- https://github.com/decilya/new-test-laravel-docker-redis/blob/main/src/routes/web.php
+- https://github.com/decilya/new-test-laravel-docker-redis/blob/main/src/app/Http/Controllers/UserController.php
+- https://github.com/decilya/new-test-laravel-docker-redis/blob/main/src/app/Http/Requests/UserRequest.php
+- https://github.com/decilya/new-test-laravel-docker-redis/blob/main/src/app/Jobs/CleanOldRedisData.php
+- https://github.com/decilya/new-test-laravel-docker-redis/blob/main/src/app/Console/Kernel.php
+
+### тесты:
+- https://github.com/decilya/new-test-laravel-docker-redis/blob/main/src/tests/Feature/RegisterTest.php
+- https://github.com/decilya/new-test-laravel-docker-redis/blob/main/src/tests/Feature/ListTest.php
+
+```bash
+docker compose exec app php artisan test
+```
+
+### Качество кода:
+Инструменты code-style и code-quality
+```bash
+composer require --dev phpstan/phpstan
+composer require --dev laravel/pint
+
+vendor/bin/phpstan analyse
+php artisan pint
+```
 
