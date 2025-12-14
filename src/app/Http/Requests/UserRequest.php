@@ -23,6 +23,7 @@ class UserRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'email' => 'required|email|unique:users,email,' . $this->route('id'),
             'nickname' => [
                 'required',
                 'string',
@@ -46,6 +47,7 @@ class UserRequest extends FormRequest
                 'mimes:jpeg,png,jpg,gif',
                 'max:2048',
             ],
+            'password' => 'required|min:6',
         ];
     }
 
@@ -62,6 +64,11 @@ class UserRequest extends FormRequest
             'avatar.image' => 'Файл должен быть изображением.',
             'avatar.mimes' => 'Допустимые форматы: jpeg, png, jpg, gif.',
             'avatar.max' => 'Размер аватара не должен превышать 2 МБ.',
+            'email.required' => 'Email обязателен для заполнения.',
+            'email.email' => 'Введите корректный email.',
+            'email.unique' => 'Этот email уже зарегистрирован.',
+            'password.required' => 'Пароль обязателен для заполнения.',
+            'password.min' => 'Пароль должен быть не менее 6 символов.',
         ];
     }
 }

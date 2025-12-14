@@ -21,8 +21,8 @@
 <nav class="navbar navbar-expand-lg navbar-light bg-light">
     <div class="container">
         <a class="navbar-brand" href="/">
-            <img src="{{ asset('logo.png') }}" alt="Logo" width="30" height="30" class="d-inline-block align-text-top">
-            Бронирование туров
+            <img src="{{ asset('logo.jpeg') }}" alt="Logo" width="30" height="30" class="d-inline-block align-text-top">
+            Тестовое задание
         </a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
@@ -33,10 +33,7 @@
                     <a class="nav-link @is_active('home')" href="/">Главная</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link @is_active('guides')" href="/guides">Гиды</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link @is_active('bookings.create')" href="/bookings/create">Забронировать</a>
+                    <a class="nav-link @is_active('users.create')" href="/users/create">Добавить пользователя</a>
                 </li>
             </ul>
         </div>
@@ -46,9 +43,10 @@
 <main class="py-4">
     <div class="container">
         @if (session('success'))
-            <div class="alert alert-success">
-                {{ session('success') }}
-            </div>
+            <div class="alert alert-success">{{ session('success') }}</div>
+            @php
+                session()->forget('success');
+            @endphp
         @endif
 
         @if ($errors->any())
