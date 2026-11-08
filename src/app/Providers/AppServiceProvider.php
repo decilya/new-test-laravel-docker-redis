@@ -28,6 +28,8 @@ final class AppServiceProvider extends ServiceProvider
 {
     /**
      * Регистрация биндингов в контейнере зависимостей.
+     * 
+     * @return void
      */
     public function register(): void
     {
@@ -40,12 +42,12 @@ final class AppServiceProvider extends ServiceProvider
 
     /**
      * Настройка событий и планировщика.
+     * 
+     * @return void
      */
     public function boot(): void
     {
         Event::listen(UserRegistered::class, InvalidateUserListCache::class);
-
-        // При удалении аватара делаем две вещи: инвалидируем кэш и удаляем файл
         Event::listen(UserAvatarRemoved::class, InvalidateUserListCache::class);
         Event::listen(UserAvatarRemoved::class, DeleteAvatarFile::class);
     }

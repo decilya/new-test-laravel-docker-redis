@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\Log;
 
 /**
  * Джоба для очистки устаревших данных (из ТЗ).
- *
+ * 
  * Инвалидирует кэш списка пользователей, не затрагивая другие кэши (например, Rate Limiter).
  */
 final class CleanupOldDataJob implements ShouldQueue
@@ -23,12 +23,13 @@ final class CleanupOldDataJob implements ShouldQueue
 
     /**
      * Выполняет джобу.
+     * 
+     * @param UserListCacheInterface $cache
+     * @return void
      */
     public function handle(UserListCacheInterface $cache): void
     {
-        // Инвалидируем ТОЛЬКО кэш списка, не трогая Rate Limiter
         $cache->invalidate();
-
         Log::info('CleanupOldDataJob: User list cache cleaned successfully.');
     }
 }

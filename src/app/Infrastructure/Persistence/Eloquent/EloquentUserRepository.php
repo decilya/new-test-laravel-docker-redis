@@ -16,15 +16,18 @@ use DateTimeImmutable;
 
 /**
  * Реализация репозитория пользователей на базе Eloquent ORM.
- *
+ * 
  * Преобразует доменный Агрегат (User) в Eloquent-модель (UserModel) и обратно.
  */
 final class EloquentUserRepository implements UserRepositoryInterface
 {
     /**
      * Сохраняет агрегат пользователя в БД.
-     *
+     * 
      * Если пользователь новый — выполняет INSERT, если существует — UPDATE (без изменения created_at).
+     * 
+     * @param User $user
+     * @return void
      */
     public function save(User $user): void
     {
@@ -38,7 +41,7 @@ final class EloquentUserRepository implements UserRepositoryInterface
         ];
 
         if ($model) {
-            $model->update($data); // created_at не трогается (иммутабельность)
+            $model->update($data);
         } else {
             $data['id'] = $user->getId()->toString();
             $data['created_at'] = $user->getCreatedAt()->format('Y-m-d H:i:s');
@@ -48,39 +51,45 @@ final class EloquentUserRepository implements UserRepositoryInterface
 
     /**
      * Ищет пользователя по его уникальному идентификатору.
+     * 
+     * @param UserId $id
+     * @return User|null
      */
     public function findById(UserId $id): ?User
     {
         $model = UserModel::find($id->toString());
-
         return $model ? $this->toDomain($model) : null;
     }
 
     /**
      * Ищет пользователя по никнейму.
+     * 
+     * @param Nickname $nickname
+     * @return User|null
      */
     public function findByNickname(Nickname $nickname): ?User
     {
         $model = UserModel::where('nickname', $nickname->toString())->first();
-
         return $model ? $this->toDomain($model) : null;
     }
 
     /**
      * Ищет пользователя по email.
+     * 
+     * @param Email $email
+     * @return User|null
      */
     public function findByEmail(Email $email): ?User
     {
         $model = UserModel::where('email', $email->toString())->first();
-
         return $model ? $this->toDomain($model) : null;
     }
 
     /**
      * Возвращает список пользователей с курсорной пагинацией.
-     *
-     * @param  int  $perPage  Количество записей на страницу
-     * @param  string|null  $cursor  Курсор для продолжения пагинации
+     * 
+     * @param int $perPage Количество записей на страницу
+     * @param string|null $cursor Курсор для продолжения пагинации
      * @return array{users: array<User>, next_cursor: string|null}
      */
     public function paginate(int $perPage, ?string $cursor = null): array
@@ -100,6 +109,9 @@ final class EloquentUserRepository implements UserRepositoryInterface
 
     /**
      * Преобразует Eloquent-модель в доменный Агрегат.
+     * 
+     * @param UserModel $model
+     * @return User
      */
     private function toDomain(UserModel $model): User
     {

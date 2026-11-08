@@ -15,12 +15,14 @@ final class LocalAvatarStorage implements AvatarStorageInterface
 {
     /**
      * Сохраняет файл и возвращает относительный путь.
-     *
+     * 
+     * @param mixed $file
+     * @return string
      * @throws \InvalidArgumentException Если передан не UploadedFile
      */
     public function store(mixed $file): string
     {
-        if (! $file instanceof UploadedFile) {
+        if (!$file instanceof UploadedFile) {
             throw new \InvalidArgumentException('Expected instance of UploadedFile.');
         }
 
@@ -29,6 +31,9 @@ final class LocalAvatarStorage implements AvatarStorageInterface
 
     /**
      * Удаляет файл по указанному пути.
+     * 
+     * @param string $path
+     * @return void
      */
     public function delete(string $path): void
     {
