@@ -16,6 +16,7 @@ use App\Domain\User\ValueObject\AvatarPath;
 use App\Domain\User\ValueObject\Email;
 use App\Domain\User\ValueObject\HashedPassword;
 use App\Domain\User\ValueObject\Nickname;
+use Illuminate\Database\UniqueConstraintViolationException;
 
 /**
  * Обработчик сценария: Регистрация пользователя.
@@ -34,6 +35,7 @@ final class RegisterUserHandler
         $nickname = Nickname::fromString($command->nickname);
         $email = Email::fromString($command->email);
 
+        // Fast-path проверка (для красивых ошибок без нагрузки на БД)
         if ($this->repository->findByNickname($nickname) !== null) {
             throw new NicknameAlreadyTaken($nickname->toString());
         }
@@ -53,9 +55,20 @@ final class RegisterUserHandler
         );
 
         $user = User::register($nickname, $email, $hashedPassword, $avatarPath);
-        $this->repository->save($user);
 
-        // Публикуем доменные события (инвалидация кэша)
+        try {
+            $this->repository->save($user);
+        } catch (UniqueConstraintViolationException $e) {
+            // Fallback на случай Race Condition (параллельные запросы)
+            if (str_contains($e->getMessage(), 'nickname')) {
+                throw new NicknameAlreadyTaken($nickname->toString());
+            }
+            if (str_contains($e->getMessage(), 'email')) {
+                throw new EmailAlreadyTaken($email->toString());
+            }
+            throw $e;
+        }
+
         $this->eventDispatcher->dispatch($user->releaseEvents());
 
         return UserView::fromAggregate($user);

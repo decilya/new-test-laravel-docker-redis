@@ -30,12 +30,10 @@ final class UserController extends Controller
             ->header('Location', "/api/v1/users/{$userView->id}");
     }
 
-    /**
-     * Получение списка пользователей.
-     */
     public function index(Request $request, GetUserListHandler $handler): AnonymousResourceCollection
     {
-        $perPage = (int) $request->query('per_page', 20);
+        // Защита от перегрузки: минимум 1, максимум 100 записей
+        $perPage = min(max((int) $request->query('per_page', 20), 1), 100);
         $cursor = $request->query('cursor');
 
         $result = $handler->handle(new GetUserListQuery($perPage, $cursor));
@@ -45,9 +43,6 @@ final class UserController extends Controller
         ]);
     }
 
-    /**
-     * Удаление аватара пользователя.
-     */
     public function destroyAvatar(string $id, RemoveUserAvatarHandler $handler): Response
     {
         $handler->handle(new RemoveUserAvatarCommand($id));
