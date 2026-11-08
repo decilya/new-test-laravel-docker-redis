@@ -24,6 +24,7 @@ final class UserListAndAvatarTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        // Очищаем кэш перед каждым тестом, чтобы тесты не влияли друг на друга
         Cache::flush();
     }
 
@@ -50,8 +51,10 @@ final class UserListAndAvatarTest extends TestCase
             ->assertJsonCount(2, 'data')
             ->assertJsonStructure(['data', 'next_cursor']);
 
-        // Проверяем, что запрос закэшировался
-        $this->assertNotNull(Cache::get('users.list.'.md5('2|first')));
+        // Проверяем, что запрос закэшировался (теперь с использованием тега)
+        $this->assertNotNull(
+            Cache::tags(['users:list'])->get('users.list.'.md5('2|first'))
+        );
     }
 
     /**

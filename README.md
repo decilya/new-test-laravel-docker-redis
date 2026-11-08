@@ -18,7 +18,7 @@
 
 **3. Идентификаторы: UUIDv7**
 *   *Реализация:* Вместо автоинкрементного `id` используется `UUIDv7`.
-*   *Обоснование:* UUIDv7 монотонен по времени, что идеально для B-Tree индексов Postgres и курсорной пагинации. При этом он безопасен (нельзя перебрать ID) и позволяет генерировать ID в слое Domain *до* сохранения в БД, что критично для доменных событий.
+*   *Обоснование:* UUIDv7 монотонен по времени, что идеально для B-Tree индексов Postgres и курсорной пагинации. При этом он безопасен (нельзя перебрать ID) и позволяет генерировать ID в слое Domain *до* сохранения в БД.
 
 ---
 
@@ -26,7 +26,7 @@
 *   **PHP 8.3**
 *   **Laravel 12**
 *   **PostgreSQL 16** (Основная БД)
-*   **Redis 7** (Кэш, Rate Limiting, очередь)
+*   **Redis 7** (Кэш, Rate Limiting)
 *   **Docker & Docker Compose**
 *   **PHPUnit 11** (Тесты)
 *   **Larastan (PHPStan)** + **Laravel Pint** + **Deptrac** (Качество и архитектура)
@@ -36,10 +36,15 @@
 ## 🏗 Архитектура (DDD + Слои)
 
 Проект строго разделен на слои (проверяется через `deptrac`):
-*   **`App\Domain`** — Ядро. Агрегаты (`User`), Value Objects (`Nickname`, `Email`), Domain Events, интерфейсы репозиториев. Не зависит от Laravel.
-*   **`App\Application`** — Сценарии использования (Use Cases / Handlers). Оркестрация домена и инфраструктуры. DTO (Commands/Queries). Не зависит от Eloquent.
+*   **`App\Domain`** — Ядро. Агрегаты (`User`), Value Objects, Domain Events, интерфейсы. Не зависит от Laravel.
+*   **`App\Application`** — Сценарии (Use Cases). Оркестрация. DTO (Commands/Queries). Не зависит от Eloquent.
 *   **`App\Infrastructure`** — Реализации интерфейсов (Eloquent, Redis, Storage).
 *   **`App\Http`** — Тонкие контроллеры, FormRequests, API Resources. Только прием запроса и отдача ответа.
+
+### Production-Ready решения (Senior Level)
+*   **Race Condition:** В `RegisterUserHandler` реализован паттерн "Check-then-Act with DB fallback". Если параллельный запрос займет никнейм, БД выбросит `UniqueConstraintViolationException`, который перехватывается и транслируется в доменное исключение (409 Conflict).
+*   **Изоляция кэша:** Для кэша списка используется `Cache::tags(['users:list'])`, чтобы при инвалидации не сбрасывать кэш Rate Limiter'а.
+*   **Защита от OOM:** В контроллере валидируется `per_page` (min 1, max 100).
 
 ---
 
@@ -58,11 +63,7 @@ make install
 
 ### 1. Регистрация пользователя
 `POST /api/v1/users`
-*   **Body:** `multipart/form-data`
-    *   `nickname` (string, unique, 3-32 символа)
-    *   `email` (string, unique, valid email)
-    *   `password` (string, min 8)
-    *   `avatar` (file, jpeg/png, max 2MB)
+*   **Body:** `multipart/form-data` (`nickname`, `email`, `password`, `avatar`).
 *   **Responses:** `201 Created` / `422 Unprocessable` / `409 Conflict` / `429 Too Many Requests`.
 
 ### 2. Список пользователей
@@ -77,29 +78,29 @@ make install
 
 ## ✅ Результаты проверок (Proof of Work)
 
-Проект полностью покрыт тестами и проходит строгие проверки архитектуры и стиля кода.
+Проект полностью покрыт тестами и проходит строгие проверки.
 
-**Запуск тестов:**
+**Тесты:**
 ```bash
 make test
 ```
 ```text
-Tests:    26 passed (64 assertions)
-Duration: 3.12s
+Tests:    27 passed (66 assertions)
+Duration: 2.81s
 ```
 *(Покрыты: Value Objects, Агрегат, Use Cases, API (Feature), Интеграция с БД, Слушатели событий, Джобы).*
 
-**Проверка Code Style и Архитектуры:**
+**Code Style и Архитектура:**
 ```bash
 make lint
 ```
 ```text
-Laravel Pint: PASS (81 files)
+Laravel Pint: PASS (83 files)
 Deptrac:
   Violations           0
-  Allowed              121
+  Allowed              127
 ```
-*Pint проверяет стиль PSR-12. Deptrac гарантирует, что слои не нарушают зависимости (например, Domain не импортирует Laravel).*
+*Pint проверяет стиль PSR-12. Deptrac гарантирует, что слои не нарушают зависимости (Domain не импортирует Laravel).*
 
 ---
 
@@ -109,12 +110,12 @@ Deptrac:
 | :--- | :--- |
 | Последний Laravel | Использован Laravel 12 |
 | Docker | `docker-compose.yml` с Nginx, PHP-FPM, Postgres, Redis |
-| Redis | Используется для `Cache::remember` (список) и RateLimiting |
+| Redis | Используется для `Cache::tags` (список) и RateLimiting |
 | `POST /api/register` | Реализован как `POST /api/v1/users` |
-| Уникальность nickname | Проверка в Domain + Unique Index в БД |
+| Уникальность nickname | Проверка в Domain + Unique Index в БД + fallback на Race Condition |
 | Ограничение avatar | В `RegisterUserRequest` (`mimes:jpeg,png`, `max:2048`) |
 | Ограничение по RPS | Middleware `throttle:60,1` на группе роутов |
 | `GET api/list` | Реализован как JSON `GET /api/v1/users` |
 | Job для очистки | Реализована `CleanupOldDataJob`, запускается по крону каждые 5 минут |
-| Покрытие тестами | 26 тестов (Domain, Application, Infrastructure, HTTP) |
+| Покрытие тестами | 27 тестов (Domain, Application, Infrastructure, HTTP) |
 | Code-quality | Pint, PHPStan (Larastan), Deptrac (0 violations) |

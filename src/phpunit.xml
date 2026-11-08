@@ -23,6 +23,7 @@
         <env name="DB_DATABASE" value="laravel_test"/>
         <env name="DB_USERNAME" value="phper"/>
         <env name="DB_PASSWORD" value="secret"/>
+        <!-- Используем file, так как array не поддерживает теги -->
         <env name="CACHE_STORE" value="array"/>
         <env name="SESSION_DRIVER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>

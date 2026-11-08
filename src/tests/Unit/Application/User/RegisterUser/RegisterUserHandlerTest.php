@@ -17,12 +17,10 @@ use App\Domain\User\ValueObject\AvatarPath;
 use App\Domain\User\ValueObject\Email;
 use App\Domain\User\ValueObject\HashedPassword;
 use App\Domain\User\ValueObject\Nickname;
+use Illuminate\Database\UniqueConstraintViolationException;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
-/**
- * Тесты для сценария регистрации пользователя.
- */
 final class RegisterUserHandlerTest extends TestCase
 {
     private UserRepositoryInterface&MockObject $repository;
@@ -38,7 +36,6 @@ final class RegisterUserHandlerTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-
         $this->repository = $this->createMock(UserRepositoryInterface::class);
         $this->hasher = $this->createMock(PasswordHasherInterface::class);
         $this->avatarStorage = $this->createMock(AvatarStorageInterface::class);
@@ -60,8 +57,6 @@ final class RegisterUserHandlerTest extends TestCase
         $this->repository->method('findByEmail')->willReturn(null);
         $this->hasher->method('hash')->willReturn('hashed');
         $this->repository->expects($this->once())->method('save');
-
-        // Ожидаем, что событие будет опубликовано
         $this->dispatcher->expects($this->once())->method('dispatch');
 
         $result = $this->handler->handle($command);
@@ -100,6 +95,31 @@ final class RegisterUserHandlerTest extends TestCase
         $this->repository->method('findByNickname')->willReturn(null);
         $this->repository->method('findByEmail')->willReturn($existingUser);
         $this->expectException(EmailAlreadyTaken::class);
+
+        $this->handler->handle($command);
+    }
+
+    public function test_it_throws_exception_if_nickname_taken_in_db_race_condition(): void
+    {
+        $command = new RegisterUserCommand('john_doe', 'john@example.com', 'pass', null);
+
+        $this->repository->method('findByNickname')->willReturn(null);
+        $this->repository->method('findByEmail')->willReturn(null);
+        $this->hasher->method('hash')->willReturn('hashed');
+
+        // Правильный мок исключения БД для Laravel 12
+        $exception = new UniqueConstraintViolationException(
+            'pgsql',
+            'insert into users...',
+            [],
+            new \PDOException('SQLSTATE[23505]: Unique violation: 7 ERROR: duplicate key value violates unique constraint "users_nickname_unique"')
+        );
+
+        $this->repository->expects($this->once())
+            ->method('save')
+            ->willThrowException($exception);
+
+        $this->expectException(NicknameAlreadyTaken::class);
 
         $this->handler->handle($command);
     }
