@@ -1,6 +1,5 @@
 <?php
 
-
 namespace App\Jobs;
 
 use Illuminate\Bus\Queueable;
@@ -8,8 +7,8 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Facades\Redis;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Redis;
 
 class CleanOldRedisData implements ShouldQueue
 {
@@ -47,7 +46,7 @@ class CleanOldRedisData implements ShouldQueue
         $deletedCount = 0;
         $cursor = null;
 
-        Log::info('Starting Redis cleanup. Pattern: ' . $this->keyPattern . ', TTL: ' . $this->ttlMinutes . ' minutes');
+        Log::info('Starting Redis cleanup. Pattern: '.$this->keyPattern.', TTL: '.$this->ttlMinutes.' minutes');
 
         do {
             // Сканируем ключи по шаблону (пакетами)

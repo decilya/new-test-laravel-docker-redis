@@ -23,7 +23,7 @@ class UserRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'email' => 'required|email|unique:users,email,' . $this->route('id'),
+            'email' => 'required|email|unique:users,email,'.$this->route('id'),
             'nickname' => [
                 'required',
                 'string',

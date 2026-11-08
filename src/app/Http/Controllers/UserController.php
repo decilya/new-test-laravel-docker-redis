@@ -4,11 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\UserRequest;
 use App\Models\User;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Redis;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Redis;
+use Illuminate\Support\Facades\Storage;
 
 class UserController extends Controller
 {
@@ -20,7 +19,7 @@ class UserController extends Controller
         // Валидация уже выполнена в UserRequest
 
         /** @var User $user */
-        $user = new User();
+        $user = new User;
         $user->nickname = $request->input('nickname');
         $user->name = $request->input('name');
         $user->email = $request->input('email');
@@ -35,9 +34,9 @@ class UserController extends Controller
 
         try {
             $user->save();
-        } catch (\Throwable $e){
+        } catch (\Throwable $e) {
             Log::error($e->getMessage());
-            die($e->getMessage());
+            exit($e->getMessage());
         }
 
         Redis::set("user:nickname:{$nickname}", 'taken');
@@ -51,8 +50,8 @@ class UserController extends Controller
             'user' => [
                 'id' => $user->id,
                 'nickname' => $user->nickname,
-                'avatar_url' => asset('storage/' . $user->avatar)
-            ]
+                'avatar_url' => asset('storage/'.$user->avatar),
+            ],
         ], 201); // 201 - код состояния HTTP, который означает, что запрос выполнен успешно, и сервер создал новый ресурс.
         // Если в команде отдельно обговорено, то можно вернуть и просто 200
     }
@@ -78,8 +77,8 @@ class UserController extends Controller
         $html = '<h1>Зарегистрированные пользователи</h1><ul>';
         foreach ($users as $user) {
             $html .= '<li>';
-            $html .= '<strong>' . e($user->nickname) . '</strong>: ';
-            $html .= '<img src="' . asset('storage/' . $user->avatar) . '" width="50" height="50" alt="Аватар">';
+            $html .= '<strong>'.e($user->nickname).'</strong>: ';
+            $html .= '<img src="'.asset('storage/'.$user->avatar).'" width="50" height="50" alt="Аватар">';
             $html .= '</li>';
         }
         $html .= '</ul>';
@@ -95,9 +94,9 @@ class UserController extends Controller
      */
     public function newList()
     {
-        $page = (int)request('page', 1);
+        $page = (int) request('page', 1);
 
-        $cacheKey = 'cache.users.list.page.' . $page;
+        $cacheKey = 'cache.users.list.page.'.$page;
         $cacheTTL = 180;
 
         return Cache::remember(
@@ -114,7 +113,7 @@ class UserController extends Controller
                 // Преобразуем пути к аватарам в URL для Blade-шаблона
                 $users->each(function ($user) {
                     if ($user->avatar) {
-                        $user->avatar_url = asset('storage/avatars/' . $user->avatar);
+                        $user->avatar_url = asset('storage/avatars/'.$user->avatar);
                     } else {
                         // Задаём URL дефолтного аватара, если пользователь не загрузил свой
                         $user->avatar_url = asset('images/default-avatar.jpeg');
@@ -130,11 +129,6 @@ class UserController extends Controller
         );
     }
 
-
-    /**
-     * @param UserRequest $request
-     * @return \Illuminate\Http\JsonResponse|\Illuminate\Http\RedirectResponse
-     */
     public function store(UserRequest $request): \Illuminate\Http\JsonResponse|\Illuminate\Http\RedirectResponse
     {
         // Передаём запрос в метод register для обработки
@@ -149,12 +143,10 @@ class UserController extends Controller
         return $response;
     }
 
-
     public function create()
     {
         return view('users.form', ['user' => null]);
     }
-
 
     public function edit(User $user)
     {
@@ -162,8 +154,6 @@ class UserController extends Controller
     }
 
     /**
-     * @param UserRequest $request
-     * @param User $user
      * @return \Illuminate\Http\RedirectResponse
      */
     public function update(UserRequest $request, User $user)
@@ -189,7 +179,6 @@ class UserController extends Controller
     }
 
     /**
-     * @param User $user
      * @return \Illuminate\Http\RedirectResponse
      */
     public function removeAvatar(User $user)
@@ -203,6 +192,4 @@ class UserController extends Controller
         return redirect()->route('users.edit', $user)
             ->with('success', 'Аватар удалён!');
     }
-
-
 }

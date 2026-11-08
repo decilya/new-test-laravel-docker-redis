@@ -9,12 +9,12 @@ class ThrottleRequests
 {
     public function handle($request, Closure $next, $maxAttempts = 10, $decayMinutes = 1)
     {
-        $key = 'throttle:' . $request->ip();
+        $key = 'throttle:'.$request->ip();
         $attempts = Redis::get($key);
 
         if ($attempts >= $maxAttempts) {
             return response()->json([
-                'error' => 'Too many requests. Please try again later.'
+                'error' => 'Too many requests. Please try again later.',
             ], 429);
         }
 
