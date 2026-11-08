@@ -1,0 +1,57 @@
+deptrac:
+  paths:
+    - ./app
+  layers:
+    - name: Domain
+      collectors:
+        - type: classNameRegex
+          value: '#^App\\Domain\\.*#'
+    - name: Application
+      collectors:
+        - type: classNameRegex
+          value: '#^App\\Application\\.*#'
+    - name: Infrastructure
+      collectors:
+        - type: classNameRegex
+          value: '#^App\\Infrastructure\\.*#'
+    - name: Http
+      collectors:
+        - type: classNameRegex
+          value: '#^App\\Http\\.*#'
+    - name: Providers
+      collectors:
+        - type: classNameRegex
+          value: '#^App\\Providers\\.*#'
+    - name: Illuminate
+      collectors:
+        - type: classNameRegex
+          value: '#^Illuminate\\.*#'
+
+  ruleset:
+    # Domain не зависит ни от чего, кроме себя (и нативных типов PHP)
+    Domain: ~
+    
+    # Application может зависеть от Domain и интерфейсов Illuminate (Cache, Events)
+    Application:
+      - Domain
+      - Illuminate
+    
+    # Infrastructure зависит от Domain, Application и Laravel
+    Infrastructure:
+      - Domain
+      - Application
+      - Illuminate
+    
+    # Http зависит от Application и Domain (для исключений)
+    Http:
+      - Application
+      - Domain
+      - Illuminate
+    
+    # Providers может зависеть от всех слоев
+    Providers:
+      - Domain
+      - Application
+      - Infrastructure
+      - Http
+      - Illuminate

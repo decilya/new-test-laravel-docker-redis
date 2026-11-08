@@ -8,12 +8,11 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
 /**
- * @property  string $nickname
+ * @property string $nickname
  * @property string $avatar
  * @property string $name
  * @property string $email
  * @property string $password
- *
  */
 class User extends Authenticatable
 {

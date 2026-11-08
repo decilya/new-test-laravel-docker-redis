@@ -1,89 +1,46 @@
-version: "3.9"
-
-volumes:
-  db-store:
-    driver: local
-  psysh-store:
-    driver: local
-  redis-data:
-    driver: local
-
 services:
   app:
     build:
       context: .
       dockerfile: ./infra/docker/php/Dockerfile
-      target: ${APP_BUILD_TARGET:-development}
+      target: development
     volumes:
-      - type: bind
-        source: ./src
-        target: /workspace
-      - type: volume
-        source: psysh-store
-        target: /root/.config/psysh
-        volume:
-          nocopy: true
-    environment:
-      - APP_DEBUG=${APP_DEBUG:-true}
-      - APP_ENV=${APP_ENV:-local}
-      - APP_URL=${APP_URL:-http://localhost}
-      - LOG_CHANNEL=${LOG_CHANNEL:-stderr}
-      - LOG_STDERR_FORMATTER=${LOG_STDERR_FORMATTER:-Monolog\\Formatter\\JsonFormatter}
-      - DB_CONNECTION=${DB_CONNECTION:-mysql}
-      - DB_HOST=${DB_HOST:-db}
-      - DB_PORT=${DB_PORT:-3306}
-      - DB_DATABASE=${DB_DATABASE:-laravel}
-      - DB_USERNAME=${DB_USERNAME:-phper}
-      - DB_PASSWORD=${DB_PASSWORD:-secret}
-      - REDIS_HOST=redis
+      - ./src:/workspace
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
 
-  web:
-    build:
-      context: .
-      dockerfile: ./infra/docker/nginx/Dockerfile
+  nginx:
+    image: nginx:1.26-alpine
     ports:
-      - target: 80
-        published: ${WEB_PUBLISHED_PORT:-80}
-        protocol: tcp
-        mode: host
+      - "8080:80"
     volumes:
-      - type: bind
-        source: ./src
-        target: /workspace
+      - ./src:/workspace
+      - ./infra/docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - app
 
   db:
-    build:
-      context: .
-      dockerfile: ./infra/docker/mysql/Dockerfile
-    ports:
-      - target: 3306
-        published: ${DB_PUBLISHED_PORT:-3306}
-        protocol: tcp
-        mode: host
-    volumes:
-      - type: volume
-        source: db-store
-        target: /var/lib/mysql
-        volume:
-          nocopy: true
+    image: postgres:16-alpine
     environment:
-      - MYSQL_DATABASE=${DB_DATABASE:-laravel}
-      - MYSQL_USER=${DB_USERNAME:-phper}
-      - MYSQL_PASSWORD=${DB_PASSWORD:-secret}
-      - MYSQL_ROOT_PASSWORD=${DB_PASSWORD:-secret}
+      POSTGRES_DB: laravel
+      POSTGRES_USER: phper
+      POSTGRES_PASSWORD: secret
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U phper -d laravel"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   redis:
-    image: redis:alpine
-    container_name: redis-cache
-    ports:
-      - "6379:6379"
+    image: redis:7-alpine
     volumes:
-      - redis-data:/data
+      - redisdata:/data
 
-  mailhog:
-    image: mailhog/mailhog
-    ports:
-      - target: 8025
-        published: ${MAILHOG_PUBLISHED_PORT:-8025}
-        protocol: tcp
-        mode: host
+volumes:
+  pgdata:
+  redisdata:
