@@ -41,8 +41,8 @@
 ## 🏗 Архитектура (DDD + Слои)
 
 Проект строго разделен на слои (проверяется через `deptrac`):
-*   **`App\Domain`** — Ядро. Агрегаты (`User`), Value Objects, Domain Events, интерфейсы.
-*   **`App\Application`** — Сценарии (Use Cases). Оркестрация. DTO (Commands/Queries).
+*   **`App\Domain`** — Ядро. Агрегаты (`User`), Value Objects, Domain Events, интерфейсы репозиториев и сервисов.
+*   **`App\Application`** — Сценарии (Use Cases). Оркестрация. DTO (Commands/Queries), Слушатели событий.
 *   **`App\Infrastructure`** — Реализации интерфейсов (Eloquent, Redis, Storage).
 *   **`App\Http`** — Тонкие контроллеры, FormRequests, API Resources.
 
@@ -50,6 +50,7 @@
 *   **Race Condition:** В `RegisterUserHandler` реализован паттерн "Check-then-Act with DB fallback". Если параллельный запрос займет никнейм, БД выбросит `UniqueConstraintViolationException`, который перехватывается и транслируется в доменное исключение (409 Conflict).
 *   **Изоляция кэша:** Для кэша списка используется `Cache::tags(['users:list'])`, чтобы не сбрасывать кэш Rate Limiter'а.
 *   **Защита от OOM:** В контроллере валидируется `per_page` (min 1, max 100).
+*   **Строгий DDD в фоновых задачах:** Джоба очистки данных (`CleanupOldDataJob`) не работает напрямую с БД, а вызывает метод `deleteOlderThan()` через `UserRepositoryInterface`.
 
 ---
 
@@ -89,7 +90,7 @@ make test
 ```
 ```text
 Tests:    28 passed (68 assertions)
-Duration: 3.07s
+Duration: 3.44s
 ```
 *(Покрыты: Value Objects, Агрегат, Use Cases, API (Feature), Интеграция с БД, Слушатели событий, Джобы, Throttle).*
 
@@ -101,9 +102,9 @@ make lint
 Laravel Pint: PASS (74 files)
 Deptrac:
   Violations           0
-  Allowed              119
+  Allowed              126
 ```
-*Pint проверяет стиль PSR-12. Deptrac гарантирует, что слои не нарушают зависимости.*
+*Pint проверяет стиль PSR-12. Deptrac гарантирует, что слои не нарушают зависимости (Domain не импортирует Laravel).*
 
 ---
 
@@ -119,6 +120,6 @@ Deptrac:
 | Ограничение avatar | В `RegisterUserRequest` (`required`, `mimes`, `max:2048`) |
 | Ограничение по RPS | Middleware `throttle:api` (покрыто тестом) |
 | `GET api/list` | Реализован как JSON `GET /api/v1/users` |
-| Job для очистки | `CleanupOldDataJob` удаляет юзеров старше 60 мин, крон каждые 5 минут |
+| Job для очистки | `CleanupOldDataJob` через репозиторий удаляет юзеров старше 60 мин |
 | Покрытие тестами | 28 тестов (Domain, Application, Infrastructure, HTTP) |
 | Code-quality | Pint, PHPStan (Larastan), Deptrac (0 violations) |

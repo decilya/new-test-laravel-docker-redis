@@ -16,14 +16,10 @@ use DateTimeImmutable;
 
 /**
  * Реализация репозитория пользователей на базе Eloquent ORM.
- *
- * Преобразует доменный Агрегат (User) в Eloquent-модель (UserModel) и обратно.
  */
 final class EloquentUserRepository implements UserRepositoryInterface
 {
     /**
-     * Сохраняет агрегат пользователя в БД.
-     *
      * @param User $user
      * @return void
      */
@@ -48,8 +44,6 @@ final class EloquentUserRepository implements UserRepositoryInterface
     }
 
     /**
-     * Ищет пользователя по его уникальному идентификатору.
-     *
      * @param UserId $id
      * @return User|null
      */
@@ -61,8 +55,6 @@ final class EloquentUserRepository implements UserRepositoryInterface
     }
 
     /**
-     * Ищет пользователя по никнейму.
-     *
      * @param Nickname $nickname
      * @return User|null
      */
@@ -74,8 +66,6 @@ final class EloquentUserRepository implements UserRepositoryInterface
     }
 
     /**
-     * Ищет пользователя по email.
-     *
      * @param Email $email
      * @return User|null
      */
@@ -87,10 +77,8 @@ final class EloquentUserRepository implements UserRepositoryInterface
     }
 
     /**
-     * Возвращает список пользователей с курсорной пагинацией.
-     *
-     * @param int $perPage Количество записей на страницу
-     * @param string|null $cursor Курсор для продолжения пагинации
+     * @param int $perPage
+     * @param string|null $cursor
      * @return array{users: array<User>, next_cursor: string|null}
      */
     public function paginate(int $perPage, ?string $cursor = null): array
@@ -109,8 +97,15 @@ final class EloquentUserRepository implements UserRepositoryInterface
     }
 
     /**
-     * Преобразует Eloquent-модель в доменный Агрегат.
-     *
+     * @param DateTimeImmutable $date
+     * @return int
+     */
+    public function deleteOlderThan(DateTimeImmutable $date): int
+    {
+        return UserModel::where('created_at', '<', $date->format('Y-m-d H:i:s'))->delete();
+    }
+
+    /**
      * @param UserModel $model
      * @return User
      */

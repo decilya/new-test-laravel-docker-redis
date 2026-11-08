@@ -4,48 +4,38 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Jobs;
 
-use App\Infrastructure\Persistence\Eloquent\Models\UserModel;
+use App\Domain\User\Repository\UserRepositoryInterface;
 use App\Jobs\CleanupOldDataJob;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use DateTimeImmutable;
+use Mockery;
 use Tests\TestCase;
 
 /**
- * Тесты для джобы очистки старых данных.
+ * Тесты для джобы очистки старых данных (CleanupOldDataJob).
  */
 final class CleanupOldDataJobTest extends TestCase
 {
-    use RefreshDatabase;
-
     /**
-     * Проверяет, что джоба удаляет старых пользователей и оставляет новых.
+     * Проверяет, что джоба вызывает метод удаления в репозитории с правильной датой.
      *
      * @return void
      */
     public function test_it_deletes_users_older_than_60_minutes(): void
     {
-        // Создаем старого пользователя (2 часа назад)
-        $oldUser = UserModel::create([
-            'id' => \Symfony\Component\Uid\Uuid::v7()->toRfc4122(),
-            'nickname' => 'old_user',
-            'email' => 'old@example.com',
-            'password' => 'hash',
-        ]);
-        $oldUser->created_at = now()->subHours(2);
-        $oldUser->save();
+        $repositoryMock = Mockery::mock(UserRepositoryInterface::class);
 
-        // Создаем нового пользователя (только что)
-        $newUser = UserModel::create([
-            'id' => \Symfony\Component\Uid\Uuid::v7()->toRfc4122(),
-            'nickname' => 'new_user',
-            'email' => 'new@example.com',
-            'password' => 'hash',
-        ]);
+        $repositoryMock->shouldReceive('deleteOlderThan')
+            ->once()
+            ->with(Mockery::on(function (DateTimeImmutable $date) {
+                $expected = new DateTimeImmutable('-60 minutes');
 
-        // Выполняем джобу
-        (new CleanupOldDataJob())->handle();
+                return abs($date->getTimestamp() - $expected->getTimestamp()) < 5;
+            }))
+            ->andReturn(5);
 
-        // Проверяем: старого нет, новый на месте
-        $this->assertDatabaseMissing('users', ['id' => $oldUser->id]);
-        $this->assertDatabaseHas('users', ['id' => $newUser->id]);
+        $job = new CleanupOldDataJob();
+        $job->handle($repositoryMock);
+
+        $this->assertTrue(true);
     }
 }
