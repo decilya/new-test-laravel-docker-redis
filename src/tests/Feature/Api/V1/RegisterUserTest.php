@@ -12,18 +12,22 @@ use Tests\TestCase;
 /**
  * Feature-тесты для эндпоинта регистрации пользователя.
  *
- * Проверяют полный цикл: от HTTP-запроса до сохранения в базе данных.
+ * Проверяют полный цикл от HTTP-запроса до сохранения в базе данных,
+ * включая валидацию, обработку файлов и бизнес-исключений.
  */
 final class RegisterUserTest extends TestCase
 {
     use RefreshDatabase;
 
     /**
-     * Проверяет успешную регистрацию с аватаром.
+     * Проверяет успешную регистрацию пользователя с аватаром.
+     *
+     * Ожидает: статус 201, правильную структуру JSON, наличие файла на диске и запись в БД.
+     *
+     * @return void
      */
     public function test_it_registers_user_successfully(): void
     {
-        // Подготовка (Arrange)
         Storage::fake('public');
         $avatar = UploadedFile::fake()->image('avatar.jpg', 100, 100);
 
@@ -34,19 +38,15 @@ final class RegisterUserTest extends TestCase
             'avatar' => $avatar,
         ];
 
-        // Выполнение (Act)
         $response = $this->postJson('/api/v1/users', $payload);
 
-        // Проверка (Assert)
         $response->assertStatus(201)
             ->assertJsonStructure([
                 'data' => ['id', 'nickname', 'avatar_url', 'created_at'],
             ]);
 
-        // Проверяем, что файл сохранен
         Storage::disk('public')->assertExists('avatars/'.$avatar->hashName());
 
-        // Проверяем, что пользователь есть в БД
         $this->assertDatabaseHas('users', [
             'nickname' => 'john_doe',
             'email' => 'john@example.com',
@@ -54,45 +54,51 @@ final class RegisterUserTest extends TestCase
     }
 
     /**
-     * Проверяет ошибку валидации (422) при неверных данных.
+     * Проверяет ошибку валидации (422) при передаче неверных данных.
+     *
+     * Ожидает: статус 422 и наличие ошибок для полей nickname, email, password, avatar.
+     *
+     * @return void
      */
     public function test_it_fails_validation_on_invalid_data(): void
     {
-        // Подготовка (Arrange)
         $payload = [
-            'nickname' => 'jo', // Слишком короткий
+            'nickname' => 'jo',
             'email' => 'not-an-email',
             'password' => '123',
         ];
 
-        // Выполнение (Act)
         $response = $this->postJson('/api/v1/users', $payload);
 
-        // Проверка (Assert)
         $response->assertStatus(422)
-            ->assertJsonValidationErrors(['nickname', 'email', 'password']);
+            ->assertJsonValidationErrors(['nickname', 'email', 'password', 'avatar']);
     }
 
     /**
-     * Проверяет ошибку 409 (Conflict) при дубликате никнейма.
+     * Проверяет ошибку 409 (Conflict) при попытке занять существующий никнейм.
+     *
+     * Ожидает: статус 409 и код ошибки 'NicknameAlreadyTaken'.
+     *
+     * @return void
      */
     public function test_it_returns_409_if_nickname_taken(): void
     {
-        // Подготовка (Arrange)
+        Storage::fake('public');
+
         $this->postJson('/api/v1/users', [
             'nickname' => 'john_doe',
             'email' => 'john@example.com',
             'password' => 'secure_password',
+            'avatar' => UploadedFile::fake()->image('avatar.jpg'),
         ]);
 
-        // Выполнение (Act)
         $response = $this->postJson('/api/v1/users', [
-            'nickname' => 'john_doe', // Дубликат
+            'nickname' => 'john_doe',
             'email' => 'other@example.com',
             'password' => 'secure_password',
+            'avatar' => UploadedFile::fake()->image('avatar2.jpg'),
         ]);
 
-        // Проверка (Assert)
         $response->assertStatus(409)
             ->assertJsonPath('error.code', 'NicknameAlreadyTaken');
     }

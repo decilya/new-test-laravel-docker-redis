@@ -10,14 +10,13 @@ use Illuminate\Foundation\Http\FormRequest;
 /**
  * Запрос на регистрацию пользователя.
  *
- * Отвечает ТОЛЬКО за валидацию формата входных данных (синтаксис).
- * Бизнес-валидация (уникальность никнейма и email) выполняется
- * в слое Application (RegisterUserHandler).
+ * Отвечает ТОЛЬКО за валидацию формата входных данных.
+ * Бизнес-валидация выполняется в слое Application.
  */
 final class RegisterUserRequest extends FormRequest
 {
     /**
-     * Определяет, авторизован ли пользователь для выполнения запроса.
+     * @return bool
      */
     public function authorize(): bool
     {
@@ -25,8 +24,6 @@ final class RegisterUserRequest extends FormRequest
     }
 
     /**
-     * Правила валидации входных данных.
-     *
      * @return array<string, mixed>
      */
     public function rules(): array
@@ -35,13 +32,11 @@ final class RegisterUserRequest extends FormRequest
             'nickname' => ['required', 'string', 'min:3', 'max:32', 'regex:/^[a-zA-Z0-9_]+$/'],
             'email' => ['required', 'string', 'email', 'max:255'],
             'password' => ['required', 'string', 'min:8'],
-            'avatar' => ['nullable', 'image', 'mimes:jpeg,png,jpg', 'max:2048'], // Максимум 2MB
+            'avatar' => ['required', 'image', 'mimes:jpeg,png,jpg', 'max:2048'],
         ];
     }
 
     /**
-     * Преобразует валидированные данные в DTO (Command) для Application слоя.
-     *
      * @return RegisterUserCommand
      */
     public function toCommand(): RegisterUserCommand
@@ -50,7 +45,7 @@ final class RegisterUserRequest extends FormRequest
             nickname: (string) $this->validated('nickname'),
             email: (string) $this->validated('email'),
             password: (string) $this->validated('password'),
-            avatar: $this->file('avatar')
+            avatar: $this->file('avatar') // Теперь avatar обязателен
         );
     }
 }

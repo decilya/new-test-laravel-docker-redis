@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Jobs;
 
-use App\Application\User\Cache\UserListCacheInterface;
+use App\Infrastructure\Persistence\Eloquent\Models\UserModel;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\Log;
 /**
  * Джоба для очистки устаревших данных (из ТЗ).
  *
- * Инвалидирует кэш списка пользователей, не затрагивая другие кэши (например, Rate Limiter).
+ * Удаляет пользователей, зарегистрированных более 60 минут назад.
  */
 final class CleanupOldDataJob implements ShouldQueue
 {
@@ -24,12 +24,13 @@ final class CleanupOldDataJob implements ShouldQueue
     /**
      * Выполняет джобу.
      *
-     * @param UserListCacheInterface $cache
      * @return void
      */
-    public function handle(UserListCacheInterface $cache): void
+    public function handle(): void
     {
-        $cache->invalidate();
-        Log::info('CleanupOldDataJob: User list cache cleaned successfully.');
+        // Удаляем пользователей старше 60 минут
+        $deletedCount = UserModel::where('created_at', '<', now()->subMinutes(60))->delete();
+
+        Log::info("CleanupOldDataJob: Deleted {$deletedCount} old users.");
     }
 }

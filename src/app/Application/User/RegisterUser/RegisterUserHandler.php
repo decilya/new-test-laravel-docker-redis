@@ -53,11 +53,9 @@ final readonly class RegisterUserHandler
             throw new EmailAlreadyTaken($email->toString());
         }
 
-        $avatarPath = AvatarPath::fromString(null);
-        if ($command->avatar !== null) {
-            $path = $this->avatarStorage->store($command->avatar);
-            $avatarPath = AvatarPath::fromString($path);
-        }
+        // Аватар теперь обязателен, сохраняем его напрямую
+        $path = $this->avatarStorage->store($command->avatar);
+        $avatarPath = AvatarPath::fromString($path);
 
         $hashedPassword = HashedPassword::fromHash(
             $this->hasher->hash($command->password)

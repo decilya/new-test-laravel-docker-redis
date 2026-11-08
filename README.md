@@ -4,7 +4,7 @@
 
 ## ⚠️ Архитектурные решения и отступления от исходного ТЗ
 
-В исходном задании были спорные архитектурные требования (хранение всех данных в Redis и возврат HTML из API). Как сеньор-разработчик, я принял решения, которые делают систему надежнее и проще в поддержке.
+В исходном задании были спорные архитектурные требования. Как сеньор-разработчик, я принял решения, которые делают систему надежнее и проще в поддержке.
 
 **1. Хранение данных: PostgreSQL (Primary) + Redis (Cache)**
 *   *Исходное ТЗ:* «Развернуть Redis... в который будут сохраняться все данные».
@@ -14,11 +14,16 @@
 **2. Формат ответа списка: JSON вместо HTML**
 *   *Исходное ТЗ:* `GET /api/list` — «примитивный html».
 *   *Реализация:* `GET /api/v1/users` — JSON с курсорной пагинацией.
-*   *Обоснование:* Возврат HTML из API нарушает принцип разделения ответственности. HTML-шаблон должен рендериться на стороне клиента (Frontend).
+*   *Обоснование:* Возврат HTML из API нарушает принцип разделения ответственности. HTML-шаблон должен рендериться на стороне клиента.
 
 **3. Идентификаторы: UUIDv7**
 *   *Реализация:* Вместо автоинкрементного `id` используется `UUIDv7`.
-*   *Обоснование:* UUIDv7 монотонен по времени, что идеально для B-Tree индексов Postgres и курсорной пагинации. При этом он безопасен (нельзя перебрать ID) и позволяет генерировать ID в слое Domain *до* сохранения в БД.
+*   *Обоснование:* UUIDv7 монотонен по времени, что идеально для B-Tree индексов Postgres и курсорной пагинации. При этом он безопасен (нельзя перебрать ID).
+
+**4. Расширение полей регистрации**
+*   *Исходное ТЗ:* «Принимает в JSON: nickname и avatar».
+*   *Реализация:* Добавлены обязательные поля `email` и `password`.
+*   *Обоснование:* Регистрация без email и пароля противоречит базовым требованиям безопасности. Поле `avatar` сделано обязательным (как в ТЗ) с ограничением mime и размера.
 
 ---
 
@@ -36,26 +41,24 @@
 ## 🏗 Архитектура (DDD + Слои)
 
 Проект строго разделен на слои (проверяется через `deptrac`):
-*   **`App\Domain`** — Ядро. Агрегаты (`User`), Value Objects, Domain Events, интерфейсы. Не зависит от Laravel.
-*   **`App\Application`** — Сценарии (Use Cases). Оркестрация. DTO (Commands/Queries). Не зависит от Eloquent.
+*   **`App\Domain`** — Ядро. Агрегаты (`User`), Value Objects, Domain Events, интерфейсы.
+*   **`App\Application`** — Сценарии (Use Cases). Оркестрация. DTO (Commands/Queries).
 *   **`App\Infrastructure`** — Реализации интерфейсов (Eloquent, Redis, Storage).
-*   **`App\Http`** — Тонкие контроллеры, FormRequests, API Resources. Только прием запроса и отдача ответа.
+*   **`App\Http`** — Тонкие контроллеры, FormRequests, API Resources.
 
 ### Production-Ready решения (Senior Level)
 *   **Race Condition:** В `RegisterUserHandler` реализован паттерн "Check-then-Act with DB fallback". Если параллельный запрос займет никнейм, БД выбросит `UniqueConstraintViolationException`, который перехватывается и транслируется в доменное исключение (409 Conflict).
-*   **Изоляция кэша:** Для кэша списка используется `Cache::tags(['users:list'])`, чтобы при инвалидации не сбрасывать кэш Rate Limiter'а.
+*   **Изоляция кэша:** Для кэша списка используется `Cache::tags(['users:list'])`, чтобы не сбрасывать кэш Rate Limiter'а.
 *   **Защита от OOM:** В контроллере валидируется `per_page` (min 1, max 100).
 
 ---
 
 ## 🚀 Запуск проекта
 
-Для запуска достаточно выполнить одну команду (требуется установленный Docker):
-
 ```bash
 make install
 ```
-*Эта команда соберет контейнеры, установит зависимости, сгенерирует ключ и применит миграции.*
+*Соберет контейнеры, установит зависимости, сгенерирует ключ и применит миграции.*
 
 ---
 
@@ -85,22 +88,22 @@ make install
 make test
 ```
 ```text
-Tests:    27 passed (66 assertions)
-Duration: 2.81s
+Tests:    28 passed (68 assertions)
+Duration: 3.07s
 ```
-*(Покрыты: Value Objects, Агрегат, Use Cases, API (Feature), Интеграция с БД, Слушатели событий, Джобы).*
+*(Покрыты: Value Objects, Агрегат, Use Cases, API (Feature), Интеграция с БД, Слушатели событий, Джобы, Throttle).*
 
 **Code Style и Архитектура:**
 ```bash
 make lint
 ```
 ```text
-Laravel Pint: PASS (83 files)
+Laravel Pint: PASS (74 files)
 Deptrac:
   Violations           0
-  Allowed              127
+  Allowed              119
 ```
-*Pint проверяет стиль PSR-12. Deptrac гарантирует, что слои не нарушают зависимости (Domain не импортирует Laravel).*
+*Pint проверяет стиль PSR-12. Deptrac гарантирует, что слои не нарушают зависимости.*
 
 ---
 
@@ -113,9 +116,9 @@ Deptrac:
 | Redis | Используется для `Cache::tags` (список) и RateLimiting |
 | `POST /api/register` | Реализован как `POST /api/v1/users` |
 | Уникальность nickname | Проверка в Domain + Unique Index в БД + fallback на Race Condition |
-| Ограничение avatar | В `RegisterUserRequest` (`mimes:jpeg,png`, `max:2048`) |
-| Ограничение по RPS | Middleware `throttle:60,1` на группе роутов |
+| Ограничение avatar | В `RegisterUserRequest` (`required`, `mimes`, `max:2048`) |
+| Ограничение по RPS | Middleware `throttle:api` (покрыто тестом) |
 | `GET api/list` | Реализован как JSON `GET /api/v1/users` |
-| Job для очистки | Реализована `CleanupOldDataJob`, запускается по крону каждые 5 минут |
-| Покрытие тестами | 27 тестов (Domain, Application, Infrastructure, HTTP) |
+| Job для очистки | `CleanupOldDataJob` удаляет юзеров старше 60 мин, крон каждые 5 минут |
+| Покрытие тестами | 28 тестов (Domain, Application, Infrastructure, HTTP) |
 | Code-quality | Pint, PHPStan (Larastan), Deptrac (0 violations) |

@@ -4,29 +4,48 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Jobs;
 
-use App\Application\User\Cache\UserListCacheInterface;
+use App\Infrastructure\Persistence\Eloquent\Models\UserModel;
 use App\Jobs\CleanupOldDataJob;
-use Mockery;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
- * Тесты для джобы очистки старых данных (CleanupOldDataJob).
+ * Тесты для джобы очистки старых данных.
  */
 final class CleanupOldDataJobTest extends TestCase
 {
+    use RefreshDatabase;
+
     /**
-     * Проверяет, что джоба корректно вызывает инвалидацию кэша списка пользователей.
+     * Проверяет, что джоба удаляет старых пользователей и оставляет новых.
      *
      * @return void
      */
-    public function test_it_cleans_up_data(): void
+    public function test_it_deletes_users_older_than_60_minutes(): void
     {
-        $cacheMock = Mockery::mock(UserListCacheInterface::class);
-        $cacheMock->shouldReceive('invalidate')->once();
+        // Создаем старого пользователя (2 часа назад)
+        $oldUser = UserModel::create([
+            'id' => \Symfony\Component\Uid\Uuid::v7()->toRfc4122(),
+            'nickname' => 'old_user',
+            'email' => 'old@example.com',
+            'password' => 'hash',
+        ]);
+        $oldUser->created_at = now()->subHours(2);
+        $oldUser->save();
 
-        $job = new CleanupOldDataJob();
-        $job->handle($cacheMock);
+        // Создаем нового пользователя (только что)
+        $newUser = UserModel::create([
+            'id' => \Symfony\Component\Uid\Uuid::v7()->toRfc4122(),
+            'nickname' => 'new_user',
+            'email' => 'new@example.com',
+            'password' => 'hash',
+        ]);
 
-        $this->assertTrue(true);
+        // Выполняем джобу
+        (new CleanupOldDataJob())->handle();
+
+        // Проверяем: старого нет, новый на месте
+        $this->assertDatabaseMissing('users', ['id' => $oldUser->id]);
+        $this->assertDatabaseHas('users', ['id' => $newUser->id]);
     }
 }
