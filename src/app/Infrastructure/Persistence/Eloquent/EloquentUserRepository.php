@@ -15,24 +15,40 @@ use App\Infrastructure\Persistence\Eloquent\Models\UserModel;
 use DateTimeImmutable;
 
 /**
- * Реализация репозитория пользователей на базе Eloquent.
+ * Реализация репозитория пользователей на базе Eloquent ORM.
+ *
+ * Преобразует доменный Агрегат (User) в Eloquent-модель (UserModel) и обратно.
  */
 final class EloquentUserRepository implements UserRepositoryInterface
 {
+    /**
+     * Сохраняет агрегат пользователя в БД.
+     *
+     * Если пользователь новый — выполняет INSERT, если существует — UPDATE (без изменения created_at).
+     */
     public function save(User $user): void
     {
-        UserModel::updateOrCreate(
-            ['id' => $user->getId()->toString()],
-            [
-                'nickname' => $user->getNickname()->toString(),
-                'email' => $user->getEmail()->toString(),
-                'password' => $user->getPassword()->toString(),
-                'avatar_path' => $user->getAvatar()->toString(),
-                'created_at' => $user->getCreatedAt()->format('Y-m-d H:i:s'),
-            ]
-        );
+        $model = UserModel::find($user->getId()->toString());
+
+        $data = [
+            'nickname' => $user->getNickname()->toString(),
+            'email' => $user->getEmail()->toString(),
+            'password' => $user->getPassword()->toString(),
+            'avatar_path' => $user->getAvatar()->toString(),
+        ];
+
+        if ($model) {
+            $model->update($data); // created_at не трогается (иммутабельность)
+        } else {
+            $data['id'] = $user->getId()->toString();
+            $data['created_at'] = $user->getCreatedAt()->format('Y-m-d H:i:s');
+            UserModel::create($data);
+        }
     }
 
+    /**
+     * Ищет пользователя по его уникальному идентификатору.
+     */
     public function findById(UserId $id): ?User
     {
         $model = UserModel::find($id->toString());
@@ -40,6 +56,9 @@ final class EloquentUserRepository implements UserRepositoryInterface
         return $model ? $this->toDomain($model) : null;
     }
 
+    /**
+     * Ищет пользователя по никнейму.
+     */
     public function findByNickname(Nickname $nickname): ?User
     {
         $model = UserModel::where('nickname', $nickname->toString())->first();
@@ -47,6 +66,9 @@ final class EloquentUserRepository implements UserRepositoryInterface
         return $model ? $this->toDomain($model) : null;
     }
 
+    /**
+     * Ищет пользователя по email.
+     */
     public function findByEmail(Email $email): ?User
     {
         $model = UserModel::where('email', $email->toString())->first();
@@ -54,9 +76,15 @@ final class EloquentUserRepository implements UserRepositoryInterface
         return $model ? $this->toDomain($model) : null;
     }
 
+    /**
+     * Возвращает список пользователей с курсорной пагинацией.
+     *
+     * @param  int  $perPage  Количество записей на страницу
+     * @param  string|null  $cursor  Курсор для продолжения пагинации
+     * @return array{users: array<User>, next_cursor: string|null}
+     */
     public function paginate(int $perPage, ?string $cursor = null): array
     {
-        // Используем встроенную курсорную пагинацию Laravel (по id)
         $paginator = UserModel::orderBy('id', 'desc')->cursorPaginate($perPage, ['*'], 'cursor', $cursor);
 
         $users = array_map(
@@ -70,6 +98,9 @@ final class EloquentUserRepository implements UserRepositoryInterface
         ];
     }
 
+    /**
+     * Преобразует Eloquent-модель в доменный Агрегат.
+     */
     private function toDomain(UserModel $model): User
     {
         return User::reconstitute(

@@ -18,4 +18,9 @@ interface AvatarStorageInterface
      * @return string Относительный путь к сохраненному файлу
      */
     public function store(mixed $file): string;
+
+    /**
+     * Удаляет файл по указанному пути.
+     */
+    public function delete(string $path): void;
 }
