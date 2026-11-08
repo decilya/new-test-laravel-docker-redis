@@ -12,13 +12,21 @@ use App\Domain\User\ValueObject\UserId;
 /**
  * Обработчик сценария: Удаление аватара пользователя.
  */
-final class RemoveUserAvatarHandler
+final readonly class RemoveUserAvatarHandler
 {
+    /**
+     * @param UserRepositoryInterface $repository
+     * @param EventDispatcherInterface $eventDispatcher
+     */
     public function __construct(
-        private readonly UserRepositoryInterface $repository,
-        private readonly EventDispatcherInterface $eventDispatcher
+        private UserRepositoryInterface $repository,
+        private EventDispatcherInterface $eventDispatcher
     ) {}
 
+    /**
+     * @param RemoveUserAvatarCommand $command
+     * @return void
+     */
     public function handle(RemoveUserAvatarCommand $command): void
     {
         $userId = UserId::fromString($command->userId);
@@ -31,7 +39,6 @@ final class RemoveUserAvatarHandler
         $user->removeAvatar();
         $this->repository->save($user);
 
-        // Публикуем события
         $this->eventDispatcher->dispatch($user->releaseEvents());
     }
 }

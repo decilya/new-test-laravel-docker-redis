@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\Log;
 
 /**
  * Джоба для очистки устаревших данных (из ТЗ).
- * 
+ *
  * Инвалидирует кэш списка пользователей, не затрагивая другие кэши (например, Rate Limiter).
  */
 final class CleanupOldDataJob implements ShouldQueue
@@ -23,7 +23,7 @@ final class CleanupOldDataJob implements ShouldQueue
 
     /**
      * Выполняет джобу.
-     * 
+     *
      * @param UserListCacheInterface $cache
      * @return void
      */

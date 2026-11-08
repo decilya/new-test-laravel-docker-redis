@@ -15,6 +15,12 @@ use App\Domain\User\User;
  */
 final readonly class UserView
 {
+    /**
+     * @param string $id
+     * @param string $nickname
+     * @param string|null $avatarUrl
+     * @param string $createdAt
+     */
     public function __construct(
         public string $id,
         public string $nickname,
@@ -24,6 +30,9 @@ final readonly class UserView
 
     /**
      * Фабричный метод для создания View из Агрегата.
+     *
+     * @param User $user
+     * @return self
      */
     public static function fromAggregate(User $user): self
     {

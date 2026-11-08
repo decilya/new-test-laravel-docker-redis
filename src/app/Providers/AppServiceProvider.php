@@ -28,7 +28,7 @@ final class AppServiceProvider extends ServiceProvider
 {
     /**
      * Регистрация биндингов в контейнере зависимостей.
-     * 
+     *
      * @return void
      */
     public function register(): void
@@ -42,7 +42,7 @@ final class AppServiceProvider extends ServiceProvider
 
     /**
      * Настройка событий и планировщика.
-     * 
+     *
      * @return void
      */
     public function boot(): void

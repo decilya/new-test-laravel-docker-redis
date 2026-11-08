@@ -37,6 +37,12 @@ final class User
 
     /**
      * Фабричный метод для регистрации.
+     *
+     * @param Nickname $nickname
+     * @param Email $email
+     * @param HashedPassword $password
+     * @param AvatarPath $avatar
+     * @return self
      */
     public static function register(
         Nickname $nickname,
@@ -55,6 +61,14 @@ final class User
 
     /**
      * Восстановление из БД.
+     *
+     * @param UserId $id
+     * @param Nickname $nickname
+     * @param Email $email
+     * @param HashedPassword $password
+     * @param AvatarPath $avatar
+     * @param DateTimeImmutable $createdAt
+     * @return self
      */
     public static function reconstitute(
         UserId $id,
@@ -69,6 +83,8 @@ final class User
 
     /**
      * Удаляет аватар пользователя.
+     *
+     * @return void
      */
     public function removeAvatar(): void
     {
@@ -83,41 +99,66 @@ final class User
         $this->recordEvent(new UserAvatarRemoved($this->id));
     }
 
+    /**
+     * @return UserId
+     */
     public function getId(): UserId
     {
         return $this->id;
     }
 
+    /**
+     * @return Nickname
+     */
     public function getNickname(): Nickname
     {
         return $this->nickname;
     }
 
+    /**
+     * @return Email
+     */
     public function getEmail(): Email
     {
         return $this->email;
     }
 
+    /**
+     * @return HashedPassword
+     */
     public function getPassword(): HashedPassword
     {
         return $this->password;
     }
 
+    /**
+     * @return AvatarPath
+     */
     public function getAvatar(): AvatarPath
     {
         return $this->avatar;
     }
 
+    /**
+     * @return DateTimeImmutable
+     */
     public function getCreatedAt(): DateTimeImmutable
     {
         return $this->createdAt;
     }
 
+    /**
+     * @param object $event
+     * @return void
+     */
     private function recordEvent(object $event): void
     {
         $this->domainEvents[] = $event;
     }
 
+    /**
+     * @return object[]
+     */
     public function releaseEvents(): array
     {
         $events = $this->domainEvents;

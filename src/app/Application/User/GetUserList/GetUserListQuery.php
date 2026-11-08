@@ -9,6 +9,10 @@ namespace App\Application\User\GetUserList;
  */
 final readonly class GetUserListQuery
 {
+    /**
+     * @param int $perPage
+     * @param string|null $cursor
+     */
     public function __construct(
         public int $perPage = 20,
         public ?string $cursor = null

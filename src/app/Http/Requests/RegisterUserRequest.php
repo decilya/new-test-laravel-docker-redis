@@ -41,6 +41,8 @@ final class RegisterUserRequest extends FormRequest
 
     /**
      * Преобразует валидированные данные в DTO (Command) для Application слоя.
+     *
+     * @return RegisterUserCommand
      */
     public function toCommand(): RegisterUserCommand
     {

@@ -11,12 +11,19 @@ use App\Domain\User\Event\UserRegistered;
 /**
  * Слушатель доменных событий для инвалидации кэша списка пользователей.
  */
-final class InvalidateUserListCache
+final readonly class InvalidateUserListCache
 {
+    /**
+     * @param UserListCacheInterface $cache
+     */
     public function __construct(
-        private readonly UserListCacheInterface $cache
+        private UserListCacheInterface $cache
     ) {}
 
+    /**
+     * @param UserRegistered|UserAvatarRemoved $event
+     * @return void
+     */
     public function handle(UserRegistered|UserAvatarRemoved $event): void
     {
         $this->cache->invalidate();

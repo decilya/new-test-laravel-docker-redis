@@ -14,11 +14,19 @@ use App\Domain\User\User;
  */
 final class GetUserListHandler
 {
+    /**
+     * @param UserRepositoryInterface $repository
+     * @param UserListCacheInterface $cache
+     */
     public function __construct(
         private readonly UserRepositoryInterface $repository,
         private readonly UserListCacheInterface $cache
     ) {}
 
+    /**
+     * @param GetUserListQuery $query
+     * @return array
+     */
     public function handle(GetUserListQuery $query): array
     {
         $cacheKey = 'users.list.'.md5($query->perPage.'|'.($query->cursor ?? 'first'));

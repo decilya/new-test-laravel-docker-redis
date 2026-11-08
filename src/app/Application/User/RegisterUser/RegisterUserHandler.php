@@ -21,21 +21,30 @@ use Illuminate\Database\UniqueConstraintViolationException;
 /**
  * Обработчик сценария: Регистрация пользователя.
  */
-final class RegisterUserHandler
+final readonly class RegisterUserHandler
 {
+    /**
+     * @param UserRepositoryInterface $repository
+     * @param PasswordHasherInterface $hasher
+     * @param AvatarStorageInterface $avatarStorage
+     * @param EventDispatcherInterface $eventDispatcher
+     */
     public function __construct(
-        private readonly UserRepositoryInterface $repository,
-        private readonly PasswordHasherInterface $hasher,
-        private readonly AvatarStorageInterface $avatarStorage,
-        private readonly EventDispatcherInterface $eventDispatcher
+        private UserRepositoryInterface $repository,
+        private PasswordHasherInterface $hasher,
+        private AvatarStorageInterface $avatarStorage,
+        private EventDispatcherInterface $eventDispatcher
     ) {}
 
+    /**
+     * @param RegisterUserCommand $command
+     * @return UserView
+     */
     public function handle(RegisterUserCommand $command): UserView
     {
         $nickname = Nickname::fromString($command->nickname);
         $email = Email::fromString($command->email);
 
-        // Fast-path проверка (для красивых ошибок без нагрузки на БД)
         if ($this->repository->findByNickname($nickname) !== null) {
             throw new NicknameAlreadyTaken($nickname->toString());
         }
@@ -59,7 +68,6 @@ final class RegisterUserHandler
         try {
             $this->repository->save($user);
         } catch (UniqueConstraintViolationException $e) {
-            // Fallback на случай Race Condition (параллельные запросы)
             if (str_contains($e->getMessage(), 'nickname')) {
                 throw new NicknameAlreadyTaken($nickname->toString());
             }

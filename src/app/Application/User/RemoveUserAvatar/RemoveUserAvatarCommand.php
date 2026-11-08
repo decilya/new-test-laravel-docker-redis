@@ -9,6 +9,9 @@ namespace App\Application\User\RemoveUserAvatar;
  */
 final readonly class RemoveUserAvatarCommand
 {
+    /**
+     * @param string $userId
+     */
     public function __construct(
         public string $userId
     ) {}

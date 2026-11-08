@@ -16,7 +16,7 @@ final class CleanupOldDataJobTest extends TestCase
 {
     /**
      * Проверяет, что джоба корректно вызывает инвалидацию кэша списка пользователей.
-     * 
+     *
      * @return void
      */
     public function test_it_cleans_up_data(): void

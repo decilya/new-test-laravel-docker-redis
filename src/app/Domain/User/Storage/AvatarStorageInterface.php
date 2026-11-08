@@ -6,14 +6,14 @@ namespace App\Domain\User\Storage;
 
 /**
  * Интерфейс для работы с файловым хранилищем аватаров.
- * 
+ *
  * Абстрагирует файловую систему (Local, S3, etc.) от бизнес-логики.
  */
 interface AvatarStorageInterface
 {
     /**
      * Сохраняет загруженный файл и возвращает путь к нему.
-     * 
+     *
      * @param mixed $file Загруженный файл (в реализации Laravel это UploadedFile)
      * @return string Относительный путь к сохраненному файлу
      */
@@ -21,7 +21,7 @@ interface AvatarStorageInterface
 
     /**
      * Удаляет файл по указанному пути.
-     * 
+     *
      * @param string $path
      * @return void
      */

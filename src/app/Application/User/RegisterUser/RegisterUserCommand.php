@@ -13,8 +13,10 @@ namespace App\Application\User\RegisterUser;
 final readonly class RegisterUserCommand
 {
     /**
-     * @param  string  $password  Сырой пароль (будет захеширован)
-     * @param  mixed  $avatar  Загруженный файл (или null)
+     * @param string $nickname
+     * @param string $email
+     * @param string $password Сырой пароль (будет захеширован)
+     * @param mixed $avatar Загруженный файл (или null)
      */
     public function __construct(
         public string $nickname,
